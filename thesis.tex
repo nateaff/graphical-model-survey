@@ -1,0 +1,79 @@
+% thesis.tex
+% This is the main file, which calls up preamble.tex, frontmatter.tex, and thesis.bib as needed.
+
+% Frontmatter shortcuts; note the extra space at the end, which is unfortunately necessary:
+\newcommand\myname{Nathanael Aff }
+\newcommand\mytitle{ Structure Learning on Bayesian Networks } % The graduate division requires this to be in caps.
+\newcommand\mydegree{Master of Arts } % change to  Master of Science if applicable
+\newcommand\myfield{ Mathematics } % e.g., Mathematics
+\newcommand\thismonth{ December } % graduation month: May / August / December
+\newcommand\thisyear{2015 } % e.g., 2014
+
+% THEOREMS **************************-
+% \newtheorem{thm}{Theorem}[section] 
+% \newtheorem{cor}[thm]{Corollary}
+% \newtheorem{lem}[thm]{Lemam}
+% \newtheorem{prop}[thm]{Proposition}
+% \theoremstyle{definition}
+% \newtheorem{defn}[thm]{Definition}
+% \theoremstyle{remark}
+% \newtheorem{rem}[thm]{Remark}
+% \numberwithin{equation}{section}
+
+
+
+% Shortcuts (add your own...):
+\newcommand{\eps}{\varepsilon}
+\newcommand{\To}{\longrightarrow}
+\newcommand{\B}{\mathbf{B}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\F}{\mathbb{F}}
+
+
+\newcommand{\Ab}{\mathbf{A}}
+\newcommand{\U}{\mathbf{U}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\V}{\mathbf{V}}
+
+
+\newcommand{\uu}{\textbf{u}}
+\newcommand{\vv}{\textbf{v}}
+\newcommand{\ww}{\textbf{w}}
+\newcommand{\xx}{\textbf{x}}
+\newcommand{\yy}{\textbf{y}}
+\newcommand{\btheta}{\mathbf{\theta}}
+
+\newcommand{\bb}{\textbf{b}}
+\newcommand{\nul}{\text{null }}
+\newcommand{\range}{\text{range }}
+  % \subsection{Article contribution}
+
+
+% Example with parameters
+% \newcommand{\bb}[1]{\mathbb{#1}}
+% norms, inner products,
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+
+% One of the following two has to be commented out:
+% \include{draftpreamble}  % eco-friendly draft version
+\include{preamble}   % final version, formatted according to the Graduate Division's guidelines
+
+% Main body of work:
+\include{main}
+
+% Bibliography (calls up the entries in thesis.bib if you run bibTeX):
+\bibliographystyle{amsplain}
+\addcontentsline{toc}{chapter}{Bibliography}    
+\singlespacing
+\bibliography{/home/nathanael/documents/bibtex/bayesian_networks}
+
+%location of bib if updated
+%cp bayesian_networks.bib ~/sfsu/fall_2015/mach_learn_872/graph_models/papertemplate/thesis.bib
+
+\end{document}

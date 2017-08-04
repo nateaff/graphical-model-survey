@@ -1,0 +1,992 @@
+
+% main.tex, to be used with thesis.tex
+% This contains the main work of your thesis.
+
+%Citations.
+
+% \cite{Giovani2014}
+% \cite{Friedman2008}
+% \cite{Verma}
+% \cite{Robinson2010}
+% \cite{Acid2004}
+% \cite{Zhou2007}
+% \cite{Williamson2005}
+% \cite{Freedman2010}
+% \cite{Chickering2004}
+
+
+
+
+\chapter{Introduction}
+
+    % Graphical models are both a general formalism for 
+    % specifying probabilistic models and a set of tools for
+    % learning models from multivariate data. Graphical models
+    % combine statistics and graph theory to encode 
+    % statistical relationships between variables where 
+    % arcs represent the relationship and nodes the variables.
+
+    % These models can either be generative models, in which
+    % relationships between variables encode information
+    % about a process that generates data, or they can be
+    % models in which these relationships are learned from 
+    % a given set of data.
+
+    Bayesian networks are a subset of graphical models. 
+    Whereas graphical models can be used as generative models,
+    Bayesian networks (BNs) are
+    most commonly used to model the conditional dependence
+    relations that hold between some set of variables. 
+    Variables
+    are associated with nodes in a graph and the conditional
+    dependencies are represented as directed arcs between 
+    nodes. Bayesian networks provide a way of 
+    combining previous knowledge about causal or dependence
+    relations between variables and dependence relations
+    that are learned from observational data.
+    
+    In this paper I survey a number of algorithms used
+    to learn the structure of BN. One of the challenges 
+    in doing so is the diverse uses of BNs. In some applications
+    the purpose may be to learn the structure of the 
+    graph and to make what-if inferences about how changes one or more variables would affect a dependent variable, or the goal may be to classify observations based on 
+    the learned network. For example, Bayesian networks
+    have been used in a range of applications from
+     decision support systems for health services
+     to traffic flow \cite{Zhou2007}. 
+    In other contexts, the emphasis is on the structure
+    of the dependencies in the learned graph itself, 
+    for example, in learning gene expression pathways
+    or protein signaling path, the emphasis
+    is not on inference but on learning probable causal pathways 
+    \cite{Colombo2014}\cite{Sachs2005}.
+
+    One of the drawbacks of using Bayesian networks 
+    for modeling is the complexity of the learning the network
+    structure based on observational data which
+    can be exponential in the number of variables. Some score-based
+    methods for learning the optimal graph structure 
+     are only suitable for data with less
+    than 30 variables, but PC-based structure learning
+    algorithms, and a recent score-based approach,
+     have been successfully run on thousands
+    of variables. Although there are several dominant
+    methods currently in use, the application domain, 
+    the number of variables being modeled, and whether
+    the emphasis is on causal pathways or on more
+    reliable inference, will likely affect what approach
+    is most suitable.
+
+    After introducing basic terms and concepts of BNs 
+    we give short overview of the two 
+    most common approaches: constraint-based algorithms
+    and score-based algorithms. The constraint-based methods are based 
+    on the PC/IC algorithms and we review two early 
+    formulations of the PC family of algorithms
+    and some recent updates to the
+    constraint-based approach.  In next section
+    we describe the basic score-based approach. There have 
+    been many elaborations on the basic algorithm and
+    and a few of the most recent proposed modifications are
+    discussed. These algorithms were designed to learn
+    a static network, but with some modification they can
+    be extended to Dynamic Bayesian networks(DBN) which model
+    time-based processes, and non-stationary DBN(nsDBN)
+    a recent modification of DBNs meant to handle processes in
+    which the graph structure of the BN changes over time.
+    Finally, I look at an performance comparison of 
+    various implementations of structure learning algorithms
+    on a data set with a small number of variables.
+
+
+    % I will begin by reviewing the basic notation used
+    % for describing BN along with several basic properties
+    % of graphical models. I then give a high level overview 
+    % of a few of the categories of structure learning algorithms
+    % based on a survey by Yang Zhou. After this I will look 
+    % tow papers where that were early descriptions of
+    % these algorithms. This is followed by one more recent
+    % approach that uses integer linear programming to solve
+    % the structure learning problem. I will end with a
+    % paper that compares algorithms from most of the
+    % classes of algorithms reviewed in this paper.
+
+
+    \section{Terminology and notation}
+ 
+
+    A graph $G$ consists of a set of vertices $V = \{ v_i \}$ 
+    and edges $E = \{ e_{ij} \}$
+    connecting nodes $(v_i, v_j)$. A graph is then $G = (V,E) $. 
+    For graphical models, a set of random variables $X_i$ is
+    associated with the nodes, where a single
+    random variable $X_i$ corresponds to node $v_i$. 
+
+    % For 
+    % the sake of readability, I sometimes refer to nodes
+    % $v_i, v_j, v_k$ as $I, J, K$, where no confusion will
+    % result.
+
+    The conditional independence relations in a BN are
+    represented by directed edges $E_{ij}$ where $v_i$ is
+    the parent node and $v_j$ is the child node. An assumption of
+    the Bayesian network model is that the graph representing the 
+    conditional distribution must be acyclic. The BN, then, 
+    is represented
+    by a directed acyclic graph (DAG) with random variables
+    associated to each node and the directed arc $e_{ij}$ representing
+    a conditional dependence relationship between $x_i, x_j$. 
+    
+    % The number of vertices and edges are denoted $|V|$ and $|E|$ 
+    % respectively. 
+
+    The set of parents of a node $v_i$ corresponding to the 
+    variables on which $x_i$ is conditionally dependent is
+    represented as $\pi(i)$. The nodes associated with
+    the parent set $\pi(i)$ is the Markov blanket, $\partial v_i$
+    of the node $v_i$. These are the nodes such that 
+    $(v_i, v_j) \in E$. 
+    % ADD faithfulneess -- clarify difference d-separation, blanket, parents
+
+    The Markov assumption is that for
+    a given graphical model, nodes are conditionally independent
+    of nodes not in its Markov blanket:
+    
+    \[
+         Pr(v_i|\partial v_i \cap v_k) = Pr(v_i | \partial v_i).
+    \]
+
+    The conditional independence of a variables $X_i, X_j$ given
+    a third variable (or set of variables) $X_k$ will be denoted:  
+    \[
+        X_i \perp_P X_j | X_k
+    \]
+    The graph independence of two nodes, on the other hand, will
+     be written $X_i \perp_G | X_k$ \cite{Zhou2007}
+
+    
+
+
+    \subsection{Factorization}
+
+    Let the set of the probability distributions
+    over each node be denoted $P$ and the parameters of 
+    $P$ as $\Theta$. A Bayesian Network is the a
+    graph and the associated
+    distribution of $\mathcal{B} = (G, \Theta)$. The probability 
+    distribution on a BN can be represented a set of
+    conditional probability distributions(CPD) associated
+    with each node, which give the probability of
+    the node given it's parent set.
+    % that is, $Pr(x_i|\xx_{\pi(i)})$.
+
+    % Possible insert theorem
+    The Markov assumption permits a BN to be decomposed into 
+    sets of conditionally independent nodes. This makes for a 
+    combinatorially simpler representation of the probability 
+    distribution over the graph. That is, the conditional
+    distribution $P$, can be factored 
+    \[
+       Pr(x_1,..., x_n) = \prod_i Pr(x_i | \pi(i))
+    \]
+
+    % \subsection{D-separation}
+
+    \subsection{Inference on Bayesian networks}
+
+    Although inference on BNs is not reviewed here, we give a
+    short introduction to motivate one of the common uses
+    of BNs.
+    Given a BN, $\mathcal{B}$, the network can be queried in
+    several ways. The statistical independence of nodes can be
+    checked either directly or conditional on another set 
+    of nodes, that is, we can check $X_i \perp_P X_j$
+    or $X_i \perp_P X_j | X_k$. 
+    The network can also
+    be queried with a set of evidence $\mathcal{E}$
+    and a set of variables $X_i$ of interest. The query asks
+    for the probability of an event $X_i$ given the evidence
+    $\mathcal{E}$, that is: $Pr(X_i|\mathcal{E})$. This test
+    can also be used to classify an observation with 
+    missing value by assigning the most likely value to the 
+    missing variable given the known set. 
+
+    % \section{Structure learning overview}
+    % In  \textit{Structure Learning of Probabilistic 
+    % Graphical Modles}  Yang Zhou survey's the most common
+    % categories of structure learning algorithms. The
+    % structure learning algorithm are divided
+    % into three main types: 
+    % \begin{enumerate}
+    %     \item Constraint based
+    %     \item Score-based
+    %     \item Hybrid
+    %     % \item Integer linear 
+    % \end{enumerate}
+    
+    % The algorithms generally decompose the structure learning
+    % problem into two parts, learning the structure of the graph, 
+    % and learning the parameters of the distribution. Formally, 
+    % for a given BN $\mathcal{B}$ we want to learn
+    % \[
+    %     Pr(\mathcal{B}|D) = Pr(G, \Theta | D) = Pr(G|D) \cdot Pr(\Theta|G,D)
+    % \]   
+    %  where $Pr(G|D)$ represents learning the structure
+    % of the graph and $Pr(\Theta|G,D)$ represent learning the parameters
+    % of the distribution on the graph.(cite Scutari20142014)
+
+    % \subsection{Constraint-based algorithms} 
+    % The constraint-based algorithms solve the structure learning
+    % problem by first learning the structure of $G$ based on 
+    % conditional dependence tests. In general, this family of algorithms
+    % starts with an implied complete graph and prunes directed or 
+    % undirected arcs as the algorithm progresses. Examples of this 
+    % family are the IC algorithm of Pearl and Verma(1991) and 
+    % the PC set of algorithm of (Spirtes, Glymour, Scheines).
+    % Constraint-based algorithms tend to have high computational
+    % complexity based derived from the the need to check pairwise
+    % conditional independence repeatedly. The algorithms also 
+    % do not have a global objective function, so strictly speaking
+    % they are not maximizing $Pr(\mathcal{B}|D) $. 
+
+    % \subsection{Score-based algorithms} 
+    % Score-based algorithms, on the other hand, do maximize 
+    % a global score of the learned network. The score 
+    % measures attempts to measure $Pr(\mathcal{B}|D) $. The 
+    % state space is defined by the possible structures and 
+    % independence relations between the variables and some
+    % form of search is used to find the optimal structure given
+    % the scoring criteria. 
+
+    % The main scoring criteria are
+    % \begin{enumerate}
+    %      \item Bayesian information criterion (BIC)
+    %      \item Bayesian Dirichlet equivalence score (BDe or BDeu)
+    %      \item BGeu which is a BDe type score applied to models
+    %      with continous random variables modeled by Gaussians
+    %      \item Minimum description lenght (MDL) 
+    %  \end{enumerate} 
+    %  \cite{Zhou2007}
+    % Heckering paper is an early example of score-based algorithm (...)
+
+
+
+\chapter{Structure learning algorithms}
+
+    % \subsection{Integer optimization algorithms} 
+    % Although not treated in Zhang's survey a third class of algorithms
+    % are based on transforming the structure learning problem
+    % into an integer linear programming problem. I review one method
+    % of formulating the problem in this way in the review of
+    %  \textit{Characteristic imsets for learning Bayesian
+    %  network structure.} 
+
+
+  \section{The Inductive Causation (IC) algorithm}
+
+  % \subsection{Article contribution}
+    
+    An early motivation for studying Bayesian networks was
+    to describe causal relations between variables. 
+     A cause can be formalized as a directed
+    arrow, where A causes B is written $A \rightarrow
+    B$. It is in the context of this more general 
+    causal framework that T.S. Verma and Judea 
+    Pearl developed the Inductive Causation (IC) model
+    described in \cite{Verma}. 
+
+    This paper presents
+    several key ideas used in other structure learning
+    algorithms. First, the authors show what 
+    conditions are needed to determine
+    that DAGs have the same causal (or independence)
+    structures. These are the graph invariants of directed
+    networks. To understand them we have to introduce 
+    two definitions. 
+
+    % --------------------------------------
+    %  
+    % ---------------------------------------
+    % \textbf{v-structure} 
+    \begin{definition}[v-structure]
+        A v-structure is defined on three nodes
+        where two nodes have incoming directed arcs
+        to the third. That is, for nodes $v_i,v_j,v_k$
+        \[
+            v_i \rightarrow v_k \leftarrow v_j
+        \]
+        then there is a v-structure at $v_k$.
+     \end{definition} 
+
+    \begin{definition}[d-separation]
+        Given three disjoint subsets, $A,B,C$, of 
+        nodes in a DAG $G$, then the subset $C$
+        d-separates $A$ from $B$, that is 
+        $(A \perp_G B|C)$, if there exists
+        a node $v$ that satisfies one of the 
+        following conditions: 
+        \begin{enumerate}
+            \item The node $v$ is a v-structure
+            and neither $v$ nor any of its children 
+            that can be reached from $v$ are in $C$.
+            \item The node $v$ is in $C$ and does
+            not have any converging arcs.
+        \end{enumerate}
+    \end{definition}
+    \cite{Scutari2014}
+
+    Pearl and Verma show that two DAGs are equivalent
+    if the have the same edges (irrespective of
+    directedness) and the same $v$-structure. 
+    The proposed algorithm then uses d-separation to
+    find $v$-structures in order to determine 
+    the structure of the DAG. The IC algorithm
+     starts with a complete graph
+    and successively prunes links by finding
+    a set that d-separates each
+    pair of nodes. In the following steps the 
+    directedness of the edges are determined 
+    based on the structure of the separating
+    sets.
+
+
+    % --------------------------------------
+    %   Inductive Causation Algorithm Omit
+    % ---------------------------------------
+    % \textbf{Algorithm: Inductive Causation } \\
+    % Input : $V$ the complete graph of all variable nodes.\\
+    %         $D$ the data used for testing conditional independence \\
+    %         $E$ initial empty set of edges
+    % \begin{enumerate}
+    %     \item For each pair of nodes $v_i, v_j$ in $V$ 
+    %     search for a separting set $S_{ij}$ such that
+    %     $v_i, v_j$ are independent given $S_{ij}$. If 
+    %     no such set is found join add $(v_i, v_j)$ as an
+    %     undirected edge to $E$.
+    %     \item For each pair of non-adjacent nodes $A$ and 
+    %     $B$ with a common neighbor $v_k$, check if 
+    %     $v_i \in S_{ij}$. If not, set the edge directions
+    %     $v_i \rightarrow v_k$, $v_k \leftarrow v_j$.
+    %     \item For all undirected edges in $E$, set a 
+    %     direction using the rules: 
+    %     \item \begin{enumerate}
+    %         \item if $v_i$ is adjacent to $v_j$ and there
+    %         is a completely directed path from $v_i$ to $v_j$, 
+    %         then set $v_i \rightarrow v_j$.
+    %         \item if $v_i$ and $v_j$ are not adjacent but 
+    %         $v_i \rightarrow  v_k$ and $v_i$ has an undirected
+    %         edge $(v_k, v_j)$, then change the latter 
+    %         edge to $v_k \rightarrow v_j$
+    %         \end{enumerate} 
+    %     \item Return $E$
+    % \end{enumerate}
+
+    % (Cite ) 
+
+  % \subsection{Critique }
+
+    The concepts of DAG equivalence classes and the 
+    determined based on the undirected structure of the
+    graph, or the DAG  \textit{skeleton}, and the $v$-structure of
+    the DAG. The algorithm's complexity is bound 
+    above by the (exponential)
+    complexity of links on the the complete graph.   
+    The authors suggest reducing
+    the complexity by first finding the Markov
+    network (or Markov blanket), of every node. Since
+    this contains all possible dependencies of a 
+    node the algorithm only needs to check 
+    relations between a node and members of its
+    Markov blanket. 
+
+  \section{The PC algorithm}
+
+    The PC algorithm, named after Peter Sprites and 
+    Clark Glymour, is another constraint-based algorithm
+    that follows closely the steps of the IC algorithm
+    Here I review the algorithm as presented in 
+     \cite{SpirtesPeter;GlymourClark;Scheines2001}.
+  % \subsection{Article contribution}
+
+  % \subsection{Article details}
+    
+    Like IC, the PC algorithm assumes that there is a 
+    DAG that faithfully represents the conditional 
+    independence structure of the data. The algorithm 
+    begins with the complete graph and sets undirected
+    edges based on conditional dependence learned from the 
+    data. The algorithm 
+    is able to set a lower bound on complexity by iteratively
+    checking for pairwise dependence relations of 
+    nodes $v_i, v_j$ where the total adjacencies of $v_i$
+    are less than a a set $n$ which grows with each iteration. 
+
+    This latter step allows the complexity to be bound by 
+    the greatest degree $k$ of any node in the graph, 
+    since the algorithm runs for $k$ iterations in 
+    the initial setting of undirected dependence
+    relations between nodes. The bound on complexity is roughly
+    \[
+    \frac{ n^2(n-1)^{k-1} }{(k-1)! } 
+    \]
+    , for a network with
+    $n$ variables and greatest node degree $k$. In practice, 
+    the author's say, the runtime is better than this
+    upper complexity bound would suggests and versions of the algorithm
+    have been used to learn BNs with thousands of nodes.
+
+    The algorithm can be modified to incorporate expert 
+    knowledge by setting known causal or 
+   relations (directed)
+    edges or dependence (undirected) edges between variable
+    nodes. The author also describe in more detail the 
+    implementation including the statistical test
+    used for independence tests and possible methods of
+    testing for estimating the goodness of fit of the
+    learned model using simulations. 
+
+    \subsection{Causal interpretation of BN}
+
+    The authors of both the previous papers speak in terms of
+    causal discovery, claiming that the algorithm can serve
+    as a basis for causal discovery from observational
+    data. In particular, Pearl and Verma state that 
+    the structure discovered by the algorithm
+    can serve as a time-independent picture of causal factors
+    learned from data. 
+    This view of the power of a static Bayesian network 
+    overstates the case for learning causal structure from 
+    observational data. One of the 
+    fundamental assumptions of the DAG model of conditional 
+    independence is that their are no cycles. 
+    While the inter-dependence of variables may be well described by 
+    static dependence relation, this constraint would 
+    not model situations in which there are feedback loops
+    among the variables or time-dependent causal 
+    relations.  
+
+    Another assumption of the causal interpretation of BNs is 
+    faithfulness -- that any DAG representing the
+    statistical dependency relations in the data is isomorphic
+    to the learned DAG. Spirites  \textit{et al.} say this is 
+    sufficient for causal interpretations. This claim is not 
+    uncontroversial,
+    and one of the primary mathematical foundations for this
+    claim was recently challenged in \cite{Uhler}. The authors
+    of the latter paper show that the probability of distributions violating
+    versions of the faithfulness assumption is much
+    greater than assumed by previous authors, who claimed
+    the probability was vanishingly small.  
+
+    A more cautious and common interpretation of BN is
+    that information, including expert input, domain 
+    knowledge or data from randomized controlled experiments,
+     are required to make inferences about
+    causal factors \cite{Maathuis2015}\cite{Freedman2010}. Methods for estimating causal effects based on an unknown causal 
+     structure is also discussed in \cite{Maathuis2015}. The methods, 
+     IDA and jointIDA, test effects of an intervention over a set
+     of possible DAGs based on the the skeleton of the DAG. 
+
+
+    \subsection{Stability of the PC algorithm }
+  
+    As mentioned in the introduction, the PC and IC 
+    algorithm do not incorporate a global objective function
+    which is optimized. Learning of the structure of the 
+    BN is done based on local structure and independence
+    relations, rather than on overall fitness of the learned
+    graph. Spirites \textit{et al.} point out that since there is no 
+    back-tracking mechanism, edges wrongly removed earlier
+    in the algorithm may lead to edges not in the 
+    ideal graph being left in the graph at later stages. 
+    There is a similar issue when an edge 
+    removed early in the algorithm results, wrongly, 
+    in a change of 
+    directedness of an edge later in the graph. Both of these issues are 
+    related to the way in which the graph is pruned 
+    based on a local structure and without any back-tracking. 
+    This can lead to situations where
+    edges representing dependencies in the data can 
+    be removed later in the algorithm.  
+
+    % An alternative might to include some form of back-tracking
+    % so that it would be possible to re-add edges. It
+    % might also be possible (although computationally more 
+    % complex) to take an ensemble approach and learn 
+    % a few networks based on partial or perturbed data 
+    % and then average over the results.
+
+     % Freedman also does a brief review of the literature on 
+     % causality in a number of fields including economics, 
+     % psychology and sociology. For a more philosophically
+     % informed discussion of the causal interpretation of 
+     % Bayesian net see \cite{Williamson2005}.  
+
+
+     \subsection{PC-stable}
+
+     There have been a number of variations on the PC algorithm, 
+     some of which are reviewed in \cite{Colombo2014} and
+     more briefly in \cite{Maathuis2015}. The FCI and RFCI algorithms are
+     modifications to the PC algorithm that allow for inclusion
+     of hidden variables. These algorithms share the initial
+     step of the PC algorithm -- the conditional independence test
+     which determine the skeleton of the DAG. While the PC algorithm
+     was known to be somewhat order dependent, i.e., the skeleton of the
+     learned DAG depended on the variable order, Maathuis 
+      \textit{et al.} show that
+     this dependency grows with the dimension of the data. The proposed
+     modification to the PC algorithm, PC-stable, removes this dependency
+     by only removing edges at each stage of the inner loop of the
+     PC algorithm which determines the adjacency skeleton, 
+     rather than removing edges within the loop. The algorithm was tested
+     on real and simulated high-dimensional data sets (5000+ variables)
+     and showed decreased variance of performance as measured on 
+     sets of synthetic data sets 
+     \cite{Colombo2014} The PC-stable algorithm is available in the R package
+     \texttt{pcalg}.
+
+   
+  \section{Score-based methods}
+  
+  The other family of structure learning algorithms are
+  are score-based algorithms. The principle of score-based 
+  algorithms is to 
+  search over the space of DAGs and use a scoring 
+  criterion to select the optimal DAG given the data. 
+  There are many variations, since the scoring criteria or
+  the search procedure can be modified to give the 
+  algorithm different characteristics. 
+
+ Heckerman \textit{et al.} describe 
+ a score-based approach which includes many of the features
+ still in use today \cite{Giovani2014}. 
+  The approach of this class of algorithms is 
+  generally Bayesian and users are able to place 
+  a prior on the structure of the network -- or determine
+  the directedness of certain links before hand. The search 
+    phase then looks for the network with the
+  highest posterior probability. Unlike the previously 
+  mentioned papers, the authors clearly differentiate between
+  a causal network and what they call a belief network. 
+  The latter only encodes conditional dependence relations
+  between the variables, not necessarily causal relations. 
+  The authors introduce the a score-equivalent metric that 
+  applies to belief networks but not causal networks. 
+  The score-equivalent metric is simply a score that 
+  is equivalent for any Markov-equivalent(isomorphic)
+  BN. The authors also present algorithms for exact structure
+   learning and heuristic structure learning. 
+  % The heuristic 
+  % approach is a basic hill-climbing algorithm that makes
+  % the next alteration based on the highest scoring update
+  % to teh graph. 
+
+  % \subsection{Article contribution}
+  % \subsection{Article details}
+
+    There are several assumptions that the BN must
+    satisfy under this model, some of which can be 
+    relaxed -- such as the requirement for a complete database
+    (no missing observations).
+    The score derived meets the requirement that it is
+     equivalent for all isomorphic DAGs but 
+    it is applicable only to discrete data. A similar
+    score, however, can be derived under the assumption
+    that all variables follow a Gaussian
+    distribution. The metric is termed the BDe metric (also 
+    called the BDeu metric) and is formed by putting 
+    a Dirichlet prior conjugate to the multinomial 
+    distribution of $\Theta$ associated 
+    with each node. Using Bayes rule, the posterior probability
+    of the BN give the Data $D$ is 
+    \[
+        P(D|G^h) = \frac{P(D|G^h)P(G^h)  }{ P(D) }
+    \]
+
+    Using the Dirichlet priors the derived BDe metric is: 
+    \[
+    P(D|G^h) = \prod_i \prod_{ \pi(i) } = 
+    \frac{ \Gamma \left( \sum_{i} N_{i, \pi(i)}' \right) }
+    { \Gamma \left( \sum_{i} N_{i, \pi (i)}' + N( \pi(i) ) \right) }
+    \prod_{x_i} \frac{\Gamma \left( N_{i, \pi(i)}' + N(i,\pi(i))  \right) }
+    { \Gamma\left( N_{i,\pi(i)}' \right)}
+    \]
+
+    Where $G^h$ is the hypothesis $G$ satisfies the
+    independence relation represented in the learned graph, 
+     $\Gamma$ is the gamma function and 
+     $N'$ are the hyperparameters of the prior and $N(X)$ 
+     is the cardinality of the set $X$. 
+
+     The authors describe two heuristic algorithms for
+    searching the space of possible DAGs. Both use a set of 
+    possible changes ($\triangle(e)$) consisting of the addition, removal
+    or direction reversal of edges for each pair of nodes. The two
+    search methods are a greedy search and a simulated annealing method.
+    The authors  describe the results of testing the 
+    algorithms where performance is measured against 
+    known or gold-standard model. 
+
+    The concept of score equivalence and the scoring metric are
+    still commonly used. The basic score-based approach is highly
+    modular, and publicly available implementations allow
+    users to vary the search method, the scoring method and
+    the conditional independence tests. An overview of the
+    variations is given in \cite{Zhou2007}. We look at a comparison
+    of these implementations later in this survey.
+
+    \section{Reducing the complexity of the search space}
+
+    A drawback of the traditional score-based algorithms is the
+    size of the search space. Even the non-exact or heuristic approaches
+    to learning the max-score graph are complex in the number of 
+    variables or nodes. Two more recent variations address this
+    by using using a search space other than the space of all DAGs. The 
+    Max-Min Hill-Climbing(MMHC) algorithm is a hybrid algorithm that
+    uses the PC to find a skeleton
+    of the DAG and score-based search is applied to this reduced space  
+    \cite{Maathuis2015}. 
+
+    An alteration to the score-based method was 
+    proposed in \cite{Teyssier2012}, where the search space 
+    is over possible orderings of the variables -- called ordering based
+    search or OBS in \cite{NIPS2015_5803}. 
+    Searching over the set of orderings reduces the search space to 
+    $2^{\mathcal{O} n \log n}$ 
+    compared to $2^{\Omega n^2}$ for the space of DAGS. 
+    Checks of acyclicity at each step are also 
+     avoided and the resulting modifications to the 
+     learned structure are more global, reducing
+    the likelihood of being caught in local minima \cite{Teyssier2012}.
+    A paper based on a search of the ordering space, termed 
+    the acyclic selection OBS or ASOBS, was recently described
+    in \cite{NIPS2015_5803}. The approach taken in this paper
+    compares favorably both in speed and accuracy to other score-based
+    approaches. 
+
+    There are other structure learning approaches, some 
+    of which are gone over briefly in \cite{Zhou2007}. One 
+    of the more promising is a formulation of the structure
+    learning problem as an integer linear program. A review
+    of recent work in this direction can be found in \cite{Cussens2013}. 
+
+
+    \section{Structure learning of dynamic Bayesian networks}
+  
+  % \subsection{Article contribution}
+
+    One of the basic assumptions of Bayesian networks is 
+    that the dependence relations is acyclic and static.
+    This implies
+    there are no feedback relations among the data and
+    that parameters describing dependencies is time-invariant. 
+    In many complex systems of interest these assumptions
+    are unrealistic. Dynamic Bayesian networks (DBN) allow
+    many of the techniques developed for BNs to be 
+    applied to systems with a time component. 
+
+    The extension of structure learning of static Bayesian  
+    networks DBNs is relatively straight forward \cite{Friedman1998}.
+    A DBN is a Bayesian 
+    network with an added time-transition model. The 
+    transition model is assumed to be stationary and 
+    dependent only on the state at time $t-1$. Given these
+    assumptions, the DBN can be specified in a way similar
+    to a BN, by an initial BN $\mathcal{B_0} = (G | \Theta)$
+    and a transition network $\mathcal{B}_{\rightarrow}$ that
+    specifies the transition probabilities for the 
+    variables $X_i[t]$: 
+    \[
+        Pr(X_i[t+1]|X_i[t])     
+    \]
+
+    
+    Friedman \textit{et al.} extend the BDe and BIC score
+    to learning DBN in  \cite{Robinson2010}. 
+    The data from which $ \mathcal{B_0}$
+    and $\mathcal{B}_{\rightarrow}$ are learned consists of 
+    a set $N_{seq}$ of sequences of length $\ell$. 
+    The initial BN is learned from the $\ell$ initial sets
+    and the transition network is learned from the set of sequences. 
+    In both cases, BIC or BDe can be used as scoring criteria.
+
+    As mentioned, DBN get around the original assumption that 
+    a BN must be a DAG by allowing the transition graph
+    to model relation to previous states of a system. For
+    basic DBN, however, it is assumed that the
+    structure of the DAG and transition is stationary.  
+    In many practical cases, networks have non-stationary distributions
+    -- the conditional dependencies between variables in the 
+    network may change over time. Examples of such networks 
+    are traffic networks that change over time, ecological systems
+    over time or transcriptional regulatory networks\cite{Robinson2010}. 
+
+    \subsection{Non-stationary dynamic Bayesian networks}
+ 
+    Robinson and Hartemik have extended DBN to cases with non-stationary
+    transitions in \cite{Robinson2010}. The author's review related techniques
+    that model the non-stationarity of either the parameter distribution 
+    or the structural distribution of the network. The algorithm presented
+    takes the latter approach, allowing for addition, removals or
+    direction reversals of the edge structure of the BN.
+
+    % (SEE image for use in paper p. 3654)
+
+    The method presented builds on the approach to DBN described
+    above. The author's term
+    their algorithm nsDBN for non-stationary dynamic Bayesian network.
+    The general method of score-based learning is also 
+    retained, with the  BDe scoring criteria
+    extended to this new model. The non-stationarity is modeled
+    as a piece-wise change in the structure of the network. 
+    More formally, given some multivariate time series and a 
+    number of transition times $ T = \{ t_1,..,,, t_m \}$
+    there the graph $G$ of dependence relation is allowed
+    to have some finite number of changes $\triangle g_i$. 
+    The authors call the time between changes in the network
+    structure an epoch. Both the number of possible changes
+     $|\triangle g_i |$ and the number of total epochs are
+     assumed to be distributed geometrically, and the maximum
+     number of both epochs can be set as a parameter of the 
+     model. An assumption of the model is that both changes in 
+     graph structure and time between transitions are smooth and
+     not excessively large. 
+
+    To extend BDe as presented in \cite{Giovani2014} the author's
+    assume that the parameters are
+    independent between successive graphs $G_i$. 
+    The complexity of the resulting algorithm for building the
+    initial graph is exponential in the number of variables and for
+    each following stage it is exponential in maximum number of
+    possible changes to the graph. 
+
+    The authors test their method both on synthetic data and 
+    a subset gene expression data for \textit{Drosophila} taken
+    over the course of its development, with 66
+    or observation times. For the  \textit{Drosophila}
+    data the only reference networks were static networks or 
+    causal relations based on experimental data. Their results
+    largely match previously constructed networks and found
+    new relations between other genes that suggested connections
+    that could be verified through experiment.  
+
+    The algorithm in the paper has several forms based on the
+    information known about the number of transitions
+    and the time between the transitions. Values 
+    can be set for both parameters if they are known 
+    before hand, or they can be learned with the algorithm. 
+    In the text case on the \textit{Drosophila} data set the
+    the algorithm showed good performance where both 
+    these parameters were unknown. However, 
+    there were few transitions, 3-4, which corresponded
+    to life stages of \textit{Drosophila}. With testing on 
+    data sets with an unknown and greater number of 
+    transitions it might be easier to gauge the 
+    sensitivity of the algorithm to more transitions. 
+    The author's do demonstrate performance of the
+    algorithm on data sets of up to 100 variables and 
+    250,000 samples, but it isn't clear how well the
+    algorithm scales to a greater number of variables. 
+
+
+    Non-stationary Bayesian networks provide an
+    good model for many social and biological systems and
+    this appears to be an active area of research. For 
+    example, a related approach is taken in \cite{Grzegorczyk2012}
+    but instead of a weakly-coupled graph structure
+    between epochs, a method for modeling weak time-dependence
+    between graph parameters is described. 
+    % The \textit{Drosophila} data had very few transition times
+    % and a signal sampled at a higher frequency on might be
+
+    %  As with the core versions of 
+    % the score-based or PC algorithm, there are extensions that
+    % would be useful in practice, such being able to include
+    % latent variables.
+
+
+    %------ Update to compare 
+    \chapter{Performance}
+
+    There is not a consensus on the optimal approach to learning
+    Bayesian networks. The nature of the problem will likely
+    drive the approach. The PC-stable algorithm developed in
+    \cite{Colombo2014} has been applied to gene expression problems
+    with thousands of variables. The PC approach avoids the 
+    complexity problems associated with searching over the space
+    of DAGs, although the recent work in \cite{NIPS2015_5803}
+    means that score-based algorithms may be able to handle 
+    high-dimensional data. 
+
+    For approaches with a smaller number of variables and 
+    where more precise inference is required, the score-based
+    approaches or hybrid methods like the Max-Min Hill Climbing 
+    algorithm tend to be used. 
+
+
+
+  \section{Performance on few variables }
+    
+    A comparison of network 
+    learning algorithms for a small data set is carried
+    out in \cite{Acid2004}.
+    This paper is part of a larger project that aims to develop
+    a decision support system aimed at managers of 
+    health service providers, such as hospitals. The paper
+    is a preliminary study in which the author's evaluate
+    available algorithms for learning Bayesian networks. 
+    The authors use data from an emergency health care service
+    to compare the networks constructed 
+    by the algorithms and describe how the compared the
+    performance of these respective networks. 
+ 
+
+    % \textbf{Relation of paper to main methods}
+    The paper presents a practical application including
+    preprocessing steps and a description of how the performance
+    of different networks was rated. The authors evaluate four 
+    algorithms, two of which fit in the category of algorithms
+    that build a network from conditional independence conditions, 
+    one score-based algorithm, and a hybrid method. 
+    
+    These four algorithms are 
+        1) A version of the PC algorithm (PC). \\
+        2) The BN Power constructor (BNPC) a hybrid approach 
+        which constructs then prunes a skeleton based on 
+        conditional independence scores. \\
+        3) A score-based local search(LS) based on the algorithm
+        described in \cite{Giovani2014}  and uses
+        the same Bayesian scoring criteria.  \\
+        4) A second hybrid approach is a version of the BENEDICT
+        algorithm (BE) and a scoring function is used to compare
+        DAGs within the space of all equivalent DAGs. \\
+
+    % \textbf{Detailed critique of the work described in  the articles}
+    
+    There does not appear to be a widely used set of metrics for
+    measuring network performance, although the (alarm) network
+    is used in some papers to benchmark performance. 
+    In part, this is due 
+    to the wide number of domain areas and data types and size
+    to which Bayesian networks have been applied. Many of the 
+    papers examined demonstrated algorithms on data sets with
+    a limited number of variables, typically less than 100. An 
+    exception was the PC-stable algorithm in \cite{Colombo2014} , 
+    which was tested on a data set of over 5,000 variables. 
+
+    The algorithms were tested on a database with 11 variables 
+    with discretized data and  
+    about 33,000 instances. Another 12,000 instances were held out 
+    for testing purposes. The networks were built in under 
+    60 seconds for each algorithm without a large discrepancy 
+    between each. The authors use two main tests to gauge the quality of the
+    networks constructed by the four algorithms. The first set
+    of test use Kullback-Leibler(KL) divergence to measure the
+    discrepancy between the empirical distribution and the
+    learned distribution of the network. Three other metrics
+    are used which are essential Bayesian tests -- 
+    BIC, BDeu and K2 -- that probability of the data $D$ 
+    given the graph $G$ -- $Pr(D|G)$.The score-based or local search(LS) method had the top score
+    in three of four categories and was second in the fourth. 
+    The same set of scores was measured on the test set and
+    the LS algorithm again had the top performance. 
+
+    % \textbf{Classification performance}  
+
+    The authors next tested the performance of the networks as 
+    classifiers, by holding out individual variables and
+    letting the networks classify the observation. In
+    the classification task the BENEDICT (BE) and 
+    BNPC networks out performed the other two. In general, 
+    the (LS) network performed at the lower end (3rd or 4th)
+    of most of the variable classification tasks. The LS
+    algorithm was relearned with different scoring
+    metrics (BDeu, BIC, K2) but the performance of network
+    learned under these metrics was still lower on 
+    the classification task. It was speculated that the 
+    part of the performance issue was related to the number
+    of possible values of one of the categorical variables
+    in the database.
+
+    % \textbf{Logical conclusion based on critique}
+
+        The paper contributes an approach to measuring network
+    performance based on classification accuracy of the network, 
+    and the discrepancy between the learned distribution of the 
+    network and the empirical distribution.
+    The results show that scores for measuring the likelihood
+    of the data given the structure do not necessarily match
+    performance on the classification task. This result is a
+    good warning to those working with learning algorithms:
+    they should be tested against multiple criteria. On the other hand, 
+    the result is somewhat limited since, 
+    by design, the authors are only looking at results
+    on a single data set. There is one suggestion relating to
+    why performance of the score-based algorithm performed 
+    worse on a particular part of the network but it isn't 
+    clear if the result can be generalized. 
+      
+
+    \chapter{Summary}
+    
+    % \section{}
+    Bayesian networks have been applied to problems in 
+    everything from biology, management and ecology to finance. 
+    The optimal structure learning problem is NP-hard and 
+    heuristic approaches have been taken that use score-based, 
+    constraint-based or hybrid approaches. The constraint-based
+    algorithms are
+    faster but highly unstable for large numbers of variables, 
+    a problem that has been addressed in \cite{Colombo2014} with
+    the PC-stable algorithm. An 
+    implementation based on PC-Stable is available in the
+    $R$ package \texttt{pcalg}.  For
+    score-based algorithms there does not appear to be a 
+    dominant approach. Implementations such as that 
+    in the $R$ package \texttt{bnlearn} allow for a 
+    component based approach in which scoring, methods, 
+    search strategies, and conditional dependence tests can be 
+    determined by the user\cite{Scutari2014}. There are also algorithms
+    aimed at learning optimal BN structures, including an
+    integer linear programming approach currently available
+    in an open version with the GOBNILP. For the score-based methods
+    the most recent developments have been in simplifying 
+    the search space of the structure by searching over 
+    orderings
+    of the variables rather than DAG structures as in 
+    \cite{NIPS2015_5803}.
+    There are also a number of approaches to learning non-stationary
+    Bayesian networks \cite{Robinson2010}. Learning 
+    change-points in the variable distributions 
+     and parameters on non-stationary networks 
+    shares characteristics of learning structure on static networks. 
+    A possible area of research is the extension of developments
+    in using order-based search spaces to dynamic or non-stationary
+    networks.  
+
+
+
+    % Althought it wasn't the goal of the paper to create standard
+    % metrics for measuring network performance, it might 
+    % be worthwhile to look at a broader set of data so
+    % that performance of the algorithms when tested against
+    % a greater variety in both network structures and 
+    % variable properties can be looked at. Are there particular
+    % network permutations, combinations of conditional independence
+    % relations and variable properties that result in better
+    % or worse performance for the structure learning algorithms? 
+    % It's possible that a broader range of tests would lead to 
+    % more information about the performance characteristics of the
+    % various algorithms. 
+
+
+% \section{Graphics}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \section{Bibliographic Stuff}
+
+% For references like \cite[Section 2]{athanasiadismagic} I recommend using {\tt bibtex}; 
+
+
